@@ -1,4 +1,4 @@
-name: RDP via Ngrok - ChatGPT Edition
+name: Windows RDP via ngrok (ChatGPT)
 
 on: workflow_dispatch
 
@@ -8,28 +8,29 @@ jobs:
     timeout-minutes: 360
 
     steps:
-      - name: Enable RDP
-        run: |
-          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-          Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -Value 0
-          net user runneradmin "Password123!"
+    - name: Enable RDP
+      run: |
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -Value 0
+        net user runneradmin "Password123!"
 
-      - name: Download ngrok
-        run: |
-          Invoke-WebRequest https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
-          Expand-Archive ngrok.zip -DestinationPath $env:USERPROFILE
-          $env:Path += ";$env:USERPROFILE\ngrok"
+    - name: Download ngrok
+      run: |
+        Invoke-WebRequest -Uri https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
+        Expand-Archive ngrok.zip -DestinationPath $env:USERPROFILE\ngrok
+        $env:Path += ";$env:USERPROFILE\ngrok"
 
-      - name: Connect ngrok (Paste your auth token below)
-        run: |
-          $authToken = "P30Cv37PH4JCxMjoZKpqdXr2KiJ5_6keptNJ4VwMQw5bt5vt1e"
-          & $env:USERPROFILE\ngrok\ngrok.exe authtoken $authToken
-          Start-Process -NoNewWindow -FilePath "$env:USERPROFILE\ngrok\ngrok.exe" -ArgumentList "tcp 3389"
+    - name: Connect to ngrok (Paste your auth token)
+      run: |
+        $Env:NGROK_AUTHTOKEN = "P30Cv37PH4JCxMjoZKpqdXr2KiJ5_6keptNJ4VwMQw5bt5vt1e"
+        & $env:USERPROFILE\ngrok\ngrok.exe authtoken $Env:NGROK_AUTHTOKEN
+        Start-Process -FilePath "$env:USERPROFILE\ngrok\ngrok.exe" -ArgumentList "tcp 3389"
+        Start-Sleep -Seconds 10
+        Invoke-WebRequest -Uri http://127.0.0.1:4040/api/tunnels > tunnels.json
+        $content = Get-Content tunnels.json | ConvertFrom-Json
+        $url = $content.tunnels.public_url
+        Write-Output "🔗 RDP via ngrok:"
+        Write-Output $url
 
-      - name: Display RDP Credentials
-        run: |
-          echo "RDP is enabled!"
-          echo "Username: runneradmin"
-          echo "Password: Password123!"
-          echo "Waiting 6 hours..."
-          Start-Sleep -Seconds 21600
+    - name: Keep alive
+      run: Start-Sleep -Seconds 21600
