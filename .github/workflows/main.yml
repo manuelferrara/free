@@ -1,0 +1,21 @@
+name: Windows RDP by ChatGPT (Today)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Start RDP Session
+        run: |
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -Value 0
+          net user runneradmin "Password123!"
+          tscon 1 /dest:console
+          echo "RDP IP: $(hostname -I)"
+          echo "Username: runneradmin"
+          echo "Password: Password123!"
+          Start-Sleep -Seconds 21600
