@@ -1,21 +1,35 @@
-name: Windows RDP by ChatGPT (Today)
+name: RDP via Ngrok - ChatGPT Edition
 
-on:
-  workflow_dispatch:
+on: workflow_dispatch
 
 jobs:
-  build:
+  rdp:
     runs-on: windows-latest
     timeout-minutes: 360
 
     steps:
-      - name: Start RDP Session
+      - name: Enable RDP
         run: |
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
           Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -Value 0
           net user runneradmin "Password123!"
-          tscon 1 /dest:console
-          echo "RDP IP: $(hostname -I)"
+
+      - name: Download ngrok
+        run: |
+          Invoke-WebRequest https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
+          Expand-Archive ngrok.zip -DestinationPath $env:USERPROFILE
+          $env:Path += ";$env:USERPROFILE\ngrok"
+
+      - name: Connect ngrok (Paste your auth token below)
+        run: |
+          $authToken = "P30Cv37PH4JCxMjoZKpqdXr2KiJ5_6keptNJ4VwMQw5bt5vt1e"
+          & $env:USERPROFILE\ngrok\ngrok.exe authtoken $authToken
+          Start-Process -NoNewWindow -FilePath "$env:USERPROFILE\ngrok\ngrok.exe" -ArgumentList "tcp 3389"
+
+      - name: Display RDP Credentials
+        run: |
+          echo "RDP is enabled!"
           echo "Username: runneradmin"
           echo "Password: Password123!"
+          echo "Waiting 6 hours..."
           Start-Sleep -Seconds 21600
